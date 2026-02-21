@@ -176,22 +176,22 @@ async def get_sources(
         # Build ORDER BY clause
         order_clause = f"ORDER BY {sort_by} {sort_order.upper()}"
 
-        # Build the query
+        # Build the query — no FETCH clause: SurrealDB v3's FETCH nullifies the
+        # outer record's id field. Commands are batch-fetched separately below.
         if notebook_id:
             # Verify notebook exists first
             notebook = await Notebook.get(notebook_id)
             if not notebook:
                 raise HTTPException(status_code=404, detail="Notebook not found")
 
-            # Query sources for specific notebook - include command field with FETCH
             query = f"""
                 SELECT id, asset, created, title, updated, topics, command,
                 (SELECT VALUE count() FROM source_insight WHERE source = $parent.id GROUP ALL)[0].count OR 0 AS insights_count,
                 (SELECT VALUE id FROM source_embedding WHERE source = $parent.id LIMIT 1) != [] AS embedded
-                FROM (select value in from reference where out=$notebook_id)
+                FROM source
+                WHERE id IN (SELECT VALUE in FROM reference WHERE out = $notebook_id)
                 {order_clause}
                 LIMIT $limit START $offset
-                FETCH command
             """
             result = await repo_query(
                 query,
@@ -202,7 +202,6 @@ async def get_sources(
                 },
             )
         else:
-            # Query all sources - include command field with FETCH
             query = f"""
                 SELECT id, asset, created, title, updated, topics, command,
                 (SELECT VALUE count() FROM source_insight WHERE source = $parent.id GROUP ALL)[0].count OR 0 AS insights_count,
@@ -210,39 +209,45 @@ async def get_sources(
                 FROM source
                 {order_clause}
                 LIMIT $limit START $offset
-                FETCH command
             """
             result = await repo_query(query, {"limit": limit, "offset": offset})
 
+        # Batch-fetch command records for sources that have one.
+        # command field is a plain string after parse_record_ids (e.g. "command:abc").
+        command_ids = list({row["command"] for row in result if row.get("command")})
+        commands_by_id: dict = {}
+        if command_ids:
+            cmd_rows = await repo_query(
+                "SELECT * FROM $ids", {"ids": [ensure_record_id(c) for c in command_ids]}
+            )
+            commands_by_id = {row["id"]: row for row in cmd_rows if row.get("id")}
+
         # Convert result to response model
-        # Command data is already fetched via FETCH command clause
         response_list = []
         for row in result:
-            command = row.get("command")
+            raw_command_id = row.get("command")  # plain string or None
             command_id = None
             status = None
             processing_info = None
 
-            # Extract status from fetched command object (already resolved by FETCH)
-            if command and isinstance(command, dict):
-                command_id = str(command.get("id")) if command.get("id") else None
-                status = command.get("status")
-                # Extract execution metadata from nested result structure
-                result_data = command.get("result")
-                execution_metadata = (
-                    result_data.get("execution_metadata", {})
-                    if isinstance(result_data, dict)
-                    else {}
-                )
-                processing_info = {
-                    "started_at": execution_metadata.get("started_at"),
-                    "completed_at": execution_metadata.get("completed_at"),
-                    "error": command.get("error_message"),
-                }
-            elif command:
-                # Command exists but FETCH failed to resolve it (broken reference)
-                command_id = str(command)
-                status = "unknown"
+            if raw_command_id:
+                command_id = str(raw_command_id)
+                command = commands_by_id.get(raw_command_id) or commands_by_id.get(command_id)
+                if command:
+                    status = command.get("status")
+                    result_data = command.get("result")
+                    execution_metadata = (
+                        result_data.get("execution_metadata", {})
+                        if isinstance(result_data, dict)
+                        else {}
+                    )
+                    processing_info = {
+                        "started_at": execution_metadata.get("started_at"),
+                        "completed_at": execution_metadata.get("completed_at"),
+                        "error": command.get("error_message"),
+                    }
+                else:
+                    status = "unknown"
 
             response_list.append(
                 SourceListResponse(

@@ -372,6 +372,14 @@ async def test_credential(credential_id: str) -> dict:
 
         provider = cred.provider.lower()
 
+        if provider == "azure":
+            success, message = await _test_azure_connection(
+                endpoint=config.get("endpoint"),
+                api_key=config.get("api_key"),
+                api_version=config.get("api_version"),
+            )
+            return {"provider": provider, "success": success, "message": message}
+        
         # Handle special providers
         if provider == "ollama":
             base_url = config.get("base_url", "http://localhost:11434")
@@ -392,13 +400,6 @@ async def test_credential(credential_id: str) -> dict:
             )
             return {"provider": provider, "success": success, "message": message}
 
-        if provider == "azure":
-            success, message = await _test_azure_connection(
-                endpoint=config.get("endpoint"),
-                api_key=config.get("api_key"),
-                api_version=config.get("api_version"),
-            )
-            return {"provider": provider, "success": success, "message": message}
 
         # Standard provider: use Esperanto to create and test
         from esperanto.factory import AIFactory

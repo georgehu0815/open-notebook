@@ -28,6 +28,9 @@ from open_notebook.domain.credential import Credential
 
 PROVIDER_CONFIG = {
     # Simple providers (just API key)
+    "azureopenai": {
+        "env_var": "OPENAI_API_KEY",
+    },    
     "openai": {
         "env_var": "OPENAI_API_KEY",
     },

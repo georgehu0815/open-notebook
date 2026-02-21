@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from loguru import logger
@@ -15,6 +15,7 @@ class SpeakerProfileResponse(BaseModel):
     description: str
     tts_provider: str
     tts_model: str
+    tts_config: Optional[Dict[str, Any]] = None
     speakers: List[Dict[str, Any]]
 
 
@@ -31,6 +32,7 @@ async def list_speaker_profiles():
                 description=profile.description or "",
                 tts_provider=profile.tts_provider,
                 tts_model=profile.tts_model,
+                tts_config=profile.tts_config,
                 speakers=profile.speakers,
             )
             for profile in profiles
@@ -60,6 +62,7 @@ async def get_speaker_profile(profile_name: str):
             description=profile.description or "",
             tts_provider=profile.tts_provider,
             tts_model=profile.tts_model,
+            tts_config=profile.tts_config,
             speakers=profile.speakers,
         )
 
@@ -77,6 +80,13 @@ class SpeakerProfileCreate(BaseModel):
     description: str = Field("", description="Profile description")
     tts_provider: str = Field(..., description="TTS provider")
     tts_model: str = Field(..., description="TTS model name")
+    tts_config: Optional[Dict[str, Any]] = Field(
+        None,
+        description=(
+            "Extra config passed to AIFactory (e.g. azure_endpoint, "
+            "api_version, managed_identity_client_id for azureopenai)"
+        ),
+    )
     speakers: List[Dict[str, Any]] = Field(
         ..., description="Array of speaker configurations"
     )
@@ -91,6 +101,7 @@ async def create_speaker_profile(profile_data: SpeakerProfileCreate):
             description=profile_data.description,
             tts_provider=profile_data.tts_provider,
             tts_model=profile_data.tts_model,
+            tts_config=profile_data.tts_config,
             speakers=profile_data.speakers,
         )
 
@@ -102,6 +113,7 @@ async def create_speaker_profile(profile_data: SpeakerProfileCreate):
             description=profile.description or "",
             tts_provider=profile.tts_provider,
             tts_model=profile.tts_model,
+            tts_config=profile.tts_config,
             speakers=profile.speakers,
         )
 
@@ -128,6 +140,7 @@ async def update_speaker_profile(profile_id: str, profile_data: SpeakerProfileCr
         profile.description = profile_data.description
         profile.tts_provider = profile_data.tts_provider
         profile.tts_model = profile_data.tts_model
+        profile.tts_config = profile_data.tts_config
         profile.speakers = profile_data.speakers
 
         await profile.save()
@@ -138,6 +151,7 @@ async def update_speaker_profile(profile_id: str, profile_data: SpeakerProfileCr
             description=profile.description or "",
             tts_provider=profile.tts_provider,
             tts_model=profile.tts_model,
+            tts_config=profile.tts_config,
             speakers=profile.speakers,
         )
 
@@ -193,6 +207,7 @@ async def duplicate_speaker_profile(profile_id: str):
             description=original.description,
             tts_provider=original.tts_provider,
             tts_model=original.tts_model,
+            tts_config=original.tts_config,
             speakers=original.speakers,
         )
 
@@ -204,6 +219,7 @@ async def duplicate_speaker_profile(profile_id: str):
             description=duplicate.description or "",
             tts_provider=duplicate.tts_provider,
             tts_model=duplicate.tts_model,
+            tts_config=duplicate.tts_config,
             speakers=duplicate.speakers,
         )
 

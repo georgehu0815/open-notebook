@@ -588,7 +588,7 @@ class Note(ObjectModel):
                 {"note_id": str(self.id)},
             )
             logger.debug(f"Submitted embed_note command {command_id} for {self.id}")
-            return command_id
+            return str(command_id)
 
         return None
 
@@ -633,14 +633,48 @@ async def text_search(
     if not keyword:
         raise InvalidInputError("Search keyword cannot be empty")
     try:
-        search_results = await repo_query(
-            """
-            select *
-            from fn::text_search($keyword, $results, $source, $note)
-            """,
-            {"keyword": keyword, "results": results, "source": source, "note": note},
-        )
-        return search_results
+        # SurrealDB v3: search::score() and search::highlight() fail when the
+        # MATCHES (@n@) clause uses a variable binding. Inline keyword as a
+        # properly-escaped SurrealQL string literal to work around this limitation.
+        kw = keyword.replace("\\", "\\\\").replace("'", "\\'")
+
+        sub_queries: list[str] = []
+
+        if source:
+            sub_queries += [
+                f"SELECT id, title, id AS parent_id, math::max(search::score(1)) AS relevance FROM source WHERE title @1@ '{kw}' GROUP BY id, title",
+                f"SELECT source.id AS id, source.title AS title, source.id AS parent_id, math::max(search::score(1)) AS relevance FROM source_embedding WHERE content @1@ '{kw}' GROUP BY source.id, source.title",
+                f"SELECT id, title, id AS parent_id, math::max(search::score(1)) AS relevance FROM source WHERE full_text @1@ '{kw}' GROUP BY id, title",
+                f"SELECT id, (insight_type + ' - ' + (source.title OR '')) AS title, id AS parent_id, math::max(search::score(1)) AS relevance FROM source_insight WHERE content @1@ '{kw}' GROUP BY id, title",
+            ]
+
+        if note:
+            sub_queries += [
+                f"SELECT id, title, id AS parent_id, math::max(search::score(1)) AS relevance FROM note WHERE title @1@ '{kw}' GROUP BY id, title",
+                f"SELECT id, title, id AS parent_id, math::max(search::score(1)) AS relevance FROM note WHERE content @1@ '{kw}' GROUP BY id, title",
+            ]
+
+        # Run each sub-query and collect all hits
+        all_hits: list[dict] = []
+        for q in sub_queries:
+            rows = await repo_query(q)
+            if rows:
+                all_hits.extend(rows)
+
+        # Deduplicate by id, keeping the hit with the highest relevance score
+        seen: dict[str, dict] = {}
+        for hit in all_hits:
+            hit_id = hit.get("id")
+            if hit_id is None:
+                continue
+            existing = seen.get(hit_id)
+            if existing is None or (hit.get("relevance") or 0) > (existing.get("relevance") or 0):
+                seen[hit_id] = hit
+
+        # Sort by relevance descending and limit
+        final = sorted(seen.values(), key=lambda x: x.get("relevance") or 0, reverse=True)
+        return final[:results]
+
     except Exception as e:
         logger.error(f"Error performing text search: {str(e)}")
         logger.exception(e)

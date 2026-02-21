@@ -19,6 +19,9 @@ from open_notebook.domain.credential import Credential
 # Test models for each provider - uses minimal/cheapest models for testing
 # Format: (model_name, model_type)
 TEST_MODELS = {
+    "azure": ("gpt-5.2-chat", "language"),  # Azure OpenAI deployment name
+    "azure": ("text-embedding-ada-002", "embedding"),  # Azure OpenAI deployment name
+    "azure": ("gpt-35-turbo", "text_to_speech"),  # Azure OpenAI deployment name
     "openai": ("gpt-3.5-turbo", "language"),
     "anthropic": ("claude-3-haiku-20240307", "language"),
     "google": ("gemini-2.0-flash", "language"),
@@ -32,7 +35,7 @@ TEST_MODELS = {
     "ollama": (None, "language"),  # Dynamic - will use first available model
     # Complex providers with additional configuration
     "vertex": ("gemini-2.0-flash", "language"),  # Uses Google Vertex AI
-    "azure": ("gpt-35-turbo", "language"),  # Azure OpenAI deployment name
+
     "openai_compatible": (None, "language"),  # Dynamic - will use first available model
 }
 

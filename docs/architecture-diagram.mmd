@@ -1,0 +1,57 @@
+graph TB
+    subgraph USER["🌐 User / Browser"]
+        B[Browser]
+    end
+
+    subgraph FRONTEND["Tier 1 — Frontend  ·  Next.js 16 @ :3000"]
+        NX["App Router\nNext.js 16 / React 19"]
+        ZS["Zustand\nAuth + UI State"]
+        TQ["TanStack Query\nServer State Cache"]
+        AX["Axios Client\nBearer Token Interceptor"]
+        NX --> ZS
+        NX --> TQ
+        TQ --> AX
+    end
+
+    subgraph API["Tier 2 — Application  ·  FastAPI @ :5055"]
+        MW["PasswordAuth Middleware"]
+        RT["21 Routers"]
+        SV["16 Services"]
+        LG["LangGraph Workflows\nchat · ask · source\ntransformation · podcast"]
+        CQ["Command Queue\nsurreal-commands"]
+        MW --> RT --> SV
+        SV --> LG
+        SV --> CQ
+    end
+
+    subgraph DB["Tier 3 — Data  ·  SurrealDB @ :8000"]
+        TB["Core Records\nNotebook · Source · Note\nChatSession · Credential"]
+        VE["Vector Embeddings\nSemantic Search"]
+        MG["13 Auto-Migrations\nAsyncMigrationManager"]
+        TB --- VE
+        MG --> TB
+    end
+
+    subgraph AI["AI Providers — Esperanto 2.19+"]
+        direction LR
+        OA["OpenAI"]
+        AN["Anthropic"]
+        GO["Google"]
+        OL["Ollama\n(local)"]
+        GQ["Groq · Mistral\nDeepSeek · xAI"]
+        EL["ElevenLabs\n(TTS / Podcast)"]
+    end
+
+    subgraph STORE["Local Persistence"]
+        SQ["SQLite\nLangGraph Checkpoints"]
+        FS["File System\n/data/uploads"]
+    end
+
+    B -->|HTTPS| NX
+    AX -->|"HTTP REST"| MW
+    SV -->|"SurrealQL async"| DB
+    LG -->|"LangChain API calls"| AI
+    LG --- SQ
+    CQ -->|"SurrealQL async"| DB
+    CQ -->|"Embedding / TTS calls"| AI
+    API --- FS

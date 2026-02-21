@@ -56,9 +56,16 @@ class SpeakerProfile(ObjectModel):
     name: str = Field(..., description="Unique profile name")
     description: Optional[str] = Field(None, description="Profile description")
     tts_provider: str = Field(
-        ..., description="TTS provider (openai, elevenlabs, etc.)"
+        ..., description="TTS provider (openai, azureopenai, elevenlabs, etc.)"
     )
     tts_model: str = Field(..., description="TTS model name")
+    tts_config: Optional[Dict[str, Any]] = Field(
+        None,
+        description=(
+            "Extra config passed to AIFactory.create_text_to_speech() as kwargs. "
+            "For azureopenai: {azure_endpoint, api_version, managed_identity_client_id}"
+        ),
+    )
     speakers: List[Dict[str, Any]] = Field(
         ..., description="Array of speaker configurations"
     )

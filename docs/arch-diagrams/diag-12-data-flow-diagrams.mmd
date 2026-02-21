@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant API as FastAPI
+    participant CQ as Command Queue
+    participant CC as content-core
+    participant EMB as Embedding Provider
+    participant DB as SurrealDB
+
+    U->>FE: Upload file / paste URL
+    FE->>API: POST /api/sources (multipart)
+    API->>DB: Create Source record (pending)
+    API->>CQ: Enqueue process_source_command
+    API-->>FE: { source_id, status: "processing" }
+
+    CQ->>CC: extract_content(file/url)
+    CC-->>CQ: { full_text, metadata }
+    CQ->>DB: Update Source (full_text, metadata)
+    CQ->>CQ: chunk_text(full_text)
+    CQ->>EMB: embed_batch(chunks[])
+    EMB-->>CQ: vectors[][]
+    CQ->>DB: Store SourceEmbedding records
+    CQ->>DB: Update Source status = "ready"
+
+    FE->>API: GET /api/sources/{id} (polling)
+    API-->>FE: { status: "ready", ... }

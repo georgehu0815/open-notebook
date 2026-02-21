@@ -10,6 +10,10 @@ from open_notebook.config import DATA_FOLDER
 from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.podcasts.models import EpisodeProfile, PodcastEpisode, SpeakerProfile
 
+# Register Azure AD managed-identity TTS provider ("azureopenai") with Esperanto
+from open_notebook.ai.azure_ad_tts import register_azure_ad_tts_provider
+register_azure_ad_tts_provider()
+
 try:
     from podcast_creator import configure, create_podcast
 except ImportError as e:

@@ -4,6 +4,13 @@ This guide is for developers working on Open Notebook. For end-user documentatio
 
 ## Quick Start for Development
 
+All services running
+Service	URL	Status
+Frontend	http://localhost:3000	✅ Ready
+API	http://localhost:5055	✅ Ready
+API Docs	http://localhost:5055/docs	✅ Ready
+SurrealDB	ws://localhost:8000	✅ Ready
+
 ```bash
 # 1. Clone and setup
 git clone https://github.com/lfnovo/open-notebook.git

@@ -1,0 +1,34 @@
+sequenceDiagram
+    actor User
+    participant FE as Frontend<br/>Next.js :3000
+    participant API as FastAPI<br/>:5055
+    participant CQ as Command Queue<br/>surreal-commands
+    participant CC as content-core<br/>Extraction
+    participant EMB as Embedding Provider<br/>Esperanto
+    participant DB as SurrealDB<br/>:8000
+    participant LLM as LLM Provider<br/>Esperanto
+
+    Note over User,LLM: Source Ingestion + Chat Flow
+
+    User->>FE: Upload file / paste URL
+    FE->>API: POST /api/sources (multipart)
+    API->>DB: Create Source record (pending)
+    API->>CQ: Enqueue process_source_command
+    API-->>FE: { source_id, status: "processing" }
+
+    CQ->>CC: extract_content(file/url)
+    CC-->>CQ: { full_text, metadata }
+    CQ->>DB: Update Source (full_text)
+    CQ->>EMB: embed_batch(chunks[])
+    EMB-->>CQ: vectors[]
+    CQ->>DB: Store SourceEmbedding records
+    CQ->>DB: Mark Source status = ready
+
+    User->>FE: Send chat message
+    FE->>API: POST /api/chat { message, notebook_id }
+    API->>DB: Load context (sources + notes)
+    API->>LLM: ainvoke(system + history + message)
+    LLM-->>API: AI response
+    API->>DB: Persist message history (SQLite)
+    API-->>FE: { response }
+    FE->>FE: Render response in UI

@@ -1,0 +1,28 @@
+graph LR
+    subgraph T1["Tier 1 — Presentation"]
+        direction TB
+        A1[Pages / App Router]
+        A2[Shadcn/ui Components]
+        A3[Hooks & Stores]
+        A1 --> A2 --> A3
+    end
+
+    subgraph T2["Tier 2 — Application"]
+        direction TB
+        B1[FastAPI Routers]
+        B2[Service Layer]
+        B3[LangGraph + Commands]
+        B1 --> B2 --> B3
+    end
+
+    subgraph T3["Tier 3 — Data"]
+        direction TB
+        C1[SurrealDB Records]
+        C2[Vector Embeddings]
+        C3[Async Migrations]
+        C1 --- C2
+        C3 --> C1
+    end
+
+    T1 -->|"HTTP REST / Axios"| T2
+    T2 -->|"SurrealQL / WebSocket"| T3

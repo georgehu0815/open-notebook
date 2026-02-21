@@ -1,3 +1,4 @@
+import os
 from typing import Any, ClassVar, Dict, Optional, Union
 
 from esperanto import (
@@ -149,12 +150,42 @@ class ModelManager:
 
         # Create model based on type (Esperanto will cache the instance)
         if model.type == "language":
+            # Azure language model: use managed identity when no API key is available.
+            if provider == "azure":
+                api_key_present = (
+                    config.get("api_key")
+                    or os.getenv("AZURE_OPENAI_API_KEY_LLM")
+                    or os.getenv("AZURE_OPENAI_API_KEY")
+                )
+                if not api_key_present:
+                    from open_notebook.ai.azure_ad_language import AzureAdLanguageModel
+
+                    logger.info(
+                        f"Azure language model '{model.name}': no API key found, "
+                        "falling back to managed identity (DefaultAzureCredential)."
+                    )
+                    return AzureAdLanguageModel(model_name=model.name, config=config)
             return AIFactory.create_language(
                 model_name=model.name,
                 provider=provider,
                 config=config,
             )
         elif model.type == "embedding":
+            # Azure embedding: use managed identity when no API key is available.
+            if provider == "azure":
+                api_key_present = (
+                    config.get("api_key")
+                    or os.getenv("AZURE_OPENAI_API_KEY_EMBEDDING")
+                    or os.getenv("AZURE_OPENAI_API_KEY")
+                )
+                if not api_key_present:
+                    from open_notebook.ai.azure_ad_embedding import AzureAdEmbeddingModel
+
+                    logger.info(
+                        f"Azure embedding model '{model.name}': no API key found, "
+                        "falling back to managed identity (DefaultAzureCredential)."
+                    )
+                    return AzureAdEmbeddingModel(model_name=model.name, config=config)
             return AIFactory.create_embedding(
                 model_name=model.name,
                 provider=provider,
@@ -207,10 +238,29 @@ class ModelManager:
         return model
 
     async def get_embedding_model(self, **kwargs) -> Optional[EmbeddingModel]:
-        """Get the default embedding model"""
+        """Get the default embedding model.
+
+        Falls back to Azure managed identity embedding when:
+        - No default embedding model is configured in the database, AND
+        - ``AZURE_OPENAI_EMBEDDING_DEPLOYMENT`` and an Azure endpoint env var
+          are both set.
+        """
         defaults = await self.get_defaults()
         model_id = defaults.default_embedding_model
         if not model_id:
+            # Try Azure managed identity fallback from environment variables.
+            deployment = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT")
+            endpoint = os.getenv("AZURE_OPENAI_ENDPOINT_EMBEDDING") or os.getenv(
+                "AZURE_OPENAI_ENDPOINT"
+            )
+            if deployment and endpoint:
+                from open_notebook.ai.azure_ad_embedding import build_azure_ad_embedding_model
+
+                logger.info(
+                    f"No default embedding model in DB; using Azure AD managed identity "
+                    f"fallback: deployment={deployment} endpoint={endpoint}"
+                )
+                return build_azure_ad_embedding_model()
             return None
         model = await self.get_model(model_id, **kwargs)
         assert model is None or isinstance(model, EmbeddingModel), (
@@ -247,6 +297,21 @@ class ModelManager:
             model_id = defaults.large_context_model
 
         if not model_id:
+            # Try Azure managed identity fallback for language model types.
+            if model_type in ("chat", "transformation", "tools"):
+                deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
+                endpoint = os.getenv("AZURE_OPENAI_ENDPOINT_LLM") or os.getenv(
+                    "AZURE_OPENAI_ENDPOINT"
+                )
+                if deployment and endpoint:
+                    from open_notebook.ai.azure_ad_language import build_azure_ad_language_model
+
+                    logger.info(
+                        f"No default {model_type} model in DB; using Azure AD managed identity "
+                        f"fallback: deployment={deployment} endpoint={endpoint}"
+                    )
+                    return build_azure_ad_language_model()
+
             logger.warning(
                 f"No default model configured for type '{model_type}'. "
                 f"Please go to Settings → Models and set a default model."

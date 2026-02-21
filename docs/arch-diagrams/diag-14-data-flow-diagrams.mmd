@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant API as FastAPI
+    participant LG as LangGraph ask.py
+    participant EMB as Embedding Provider
+    participant DB as SurrealDB
+    participant LLM as LLM Provider
+
+    U->>FE: Type search query
+    FE->>API: POST /api/search/ask\n{ query, notebook_id }
+    API->>LG: ask_graph.ainvoke({ query })
+
+    LG->>LG: Entry node:\nparse + expand query
+    LG->>EMB: embed(query)
+    EMB-->>LG: query_vector[1536]
+
+    loop For each sub-query
+        LG->>DB: SELECT * FROM source_embedding\nWHERE vector::distance < threshold\nORDER BY similarity DESC LIMIT K
+        DB-->>LG: Top-K chunks
+    end
+
+    LG->>DB: Fetch full Source records
+    DB-->>LG: Source content + metadata
+    LG->>LLM: Synthesize answer\nwith sources as context
+    LLM-->>LG: Cited answer
+    LG-->>API: { answer, sources[] }
+    API-->>FE: Response with citations
+    FE->>FE: Render answer + source cards

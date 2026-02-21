@@ -1,0 +1,41 @@
+graph LR
+    subgraph Triggers["Trigger Points"]
+        T1[Source Upload]
+        T2[Note Save]
+        T3[Insight Create]
+        T4[Podcast Request]
+        T5[Rebuild Embeddings]
+    end
+
+    subgraph Queue["surreal-commands Job Queue"]
+        Q1[embed_source_command]
+        Q2[embed_note_command]
+        Q3[embed_insight_command]
+        Q4[create_insight_command]
+        Q5[process_source_command]
+        Q6[run_transformation_command]
+        Q7[generate_podcast_command]
+        Q8[rebuild_embeddings_command]
+    end
+
+    subgraph Retry["Retry Policy"]
+        R1[Exponential Jitter\n1–120s backoff]
+        R2[Max 5–15 attempts]
+        R3[Stop on ValueError\nRetry on transient errors]
+    end
+
+    subgraph Poll["Status Polling"]
+        P1["GET /api/commands/id"]
+        P2["queued / running / completed / failed"]
+    end
+
+    T1 --> Q5
+    T2 --> Q2
+    T3 --> Q3 & Q4
+    T4 --> Q7
+    T5 --> Q8
+    Q1 & Q2 & Q3 & Q4 & Q5 & Q6 & Q7 & Q8 --> R1
+    R1 --> R2 --> R3
+    Q5 -.->|status check| P1
+    Q7 -.->|status check| P1
+    P1 --> P2

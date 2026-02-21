@@ -1,0 +1,27 @@
+graph TB
+    subgraph HOST["Host Machine"]
+        subgraph DC["docker-compose"]
+            subgraph SDB["surrealdb container"]
+                S1[SurrealDB :8000]
+                S2["Persistent Volume: /data/surrealdb"]
+                S1 --- S2
+            end
+
+            subgraph APP["open_notebook container"]
+                A1[FastAPI :5055]
+                A2[Next.js :3000]
+                A3["surreal-commands Worker"]
+                A4["SQLite: /data/sqlite-db — LangGraph Checkpoints"]
+                A5["Files: /data/uploads"]
+                A1 --- A4
+                A1 --- A5
+                A3 --- A4
+            end
+        end
+
+        BR[Browser\n:3000]
+        BR --> A2
+        A2 -->|HTTP REST| A1
+        A1 -->|WebSocket\nSurrealQL| S1
+        A3 -->|SurrealQL| S1
+    end

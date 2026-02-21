@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant API as FastAPI
+    participant LG as LangGraph chat.py
+    participant SQ as SqliteSaver
+    participant LLM as LLM Provider
+
+    U->>FE: Type message + Send
+    FE->>FE: Optimistic update\n(add message to UI)
+    FE->>API: POST /api/chat\n{ notebook_id, message, session_id }
+    API->>LG: graph.ainvoke({ messages, config })
+    LG->>SQ: Load message history\n(thread_id = session_id)
+    LG->>LG: Build system prompt\n(Jinja2 + context)
+    LG->>LLM: ainvoke(messages + system)
+    LLM-->>LG: AI response
+    LG->>SQ: Persist updated history
+    LG-->>API: { output: "..." }
+    API-->>FE: { message: { role: "assistant", content: "..." } }
+    FE->>FE: Update UI with response

@@ -48,6 +48,13 @@ const speakerProfileSchema = (t: TranslationKeys) => z.object({
   description: z.string().optional(),
   tts_provider: z.string().min(1, t.models.providerRequired || 'Provider is required'),
   tts_model: z.string().min(1, t.models.modelRequired || 'Model is required'),
+  tts_config: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val.trim() === '' || (() => { try { JSON.parse(val); return true } catch { return false } })(),
+      { message: 'TTS Config must be valid JSON' }
+    ),
   speakers: z
     .array(speakerConfigSchema(t))
     .min(1, t.podcasts.speakerCountMin || 'At least one speaker is required')
@@ -94,6 +101,9 @@ export function SpeakerProfileFormDialog({
         description: initialData.description ?? '',
         tts_provider: initialData.tts_provider,
         tts_model: initialData.tts_model,
+        tts_config: initialData.tts_config
+          ? JSON.stringify(initialData.tts_config, null, 2)
+          : '',
         speakers: initialData.speakers?.map((speaker) => ({ ...speaker })) ?? [{ ...EMPTY_SPEAKER }],
       }
     }
@@ -103,6 +113,7 @@ export function SpeakerProfileFormDialog({
       description: '',
       tts_provider: firstProvider,
       tts_model: firstModel,
+      tts_config: '',
       speakers: [{ ...EMPTY_SPEAKER }],
     }
   }, [initialData, modelOptions, providers])
@@ -162,9 +173,19 @@ export function SpeakerProfileFormDialog({
   }, [provider, currentModel, modelOptions, setValue])
 
   const onSubmit = async (values: SpeakerProfileFormValues) => {
+    let parsedTtsConfig: Record<string, unknown> | null = null
+    if (values.tts_config && values.tts_config.trim()) {
+      try {
+        parsedTtsConfig = JSON.parse(values.tts_config)
+      } catch {
+        // Zod already validated this — won't reach here
+      }
+    }
+
     const payload = {
       ...values,
       description: values.description ?? '',
+      tts_config: parsedTtsConfig,
     }
 
     if (mode === 'create') {
@@ -272,6 +293,22 @@ export function SpeakerProfileFormDialog({
                 placeholder={t.podcasts.descriptionPlaceholder}
                 {...register('description')}
               />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="tts_config">
+                TTS Config <span className="text-muted-foreground text-xs">(JSON, optional)</span>
+              </Label>
+              <Textarea
+                id="tts_config"
+                rows={4}
+                placeholder={`{\n  "azure_endpoint": "https://…openai.azure.com",\n  "api_version": "2025-03-01-preview",\n  "managed_identity_client_id": "…"\n}`}
+                className="font-mono text-xs"
+                {...register('tts_config')}
+              />
+              {errors.tts_config ? (
+                <p className="text-xs text-red-600">{errors.tts_config.message}</p>
+              ) : null}
             </div>
           </div>
 

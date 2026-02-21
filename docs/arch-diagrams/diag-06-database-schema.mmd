@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant UI as Frontend
+    participant API as FastAPI
+    participant DB as SurrealDB
+    participant AI as Embedding Provider
+
+    UI->>API: POST /api/search/ask {"query": "..."}
+    API->>AI: embed(query)
+    AI-->>API: query_vector[1536]
+    API->>DB: SELECT * FROM source_embedding\nORDER BY vector::distance(embedding, $query_vector)
+    DB-->>API: Top-K chunks + source IDs
+    API->>DB: Fetch full source records
+    DB-->>API: Source content
+    API->>AI: LLM synthesize(sources + query)
+    AI-->>API: Synthesized answer
+    API-->>UI: { answer, sources[] }

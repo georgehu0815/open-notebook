@@ -1,0 +1,14 @@
+flowchart TD
+    REQ[Request with model_id / context] --> CHECK1{Model record\nin DB?}
+    CHECK1 -->|Yes| CHECK2{Linked\nCredential?}
+    CHECK1 -->|No| FALLBACK1[Use DefaultModels\nby type]
+    CHECK2 -->|Yes| CRED[Load Credential Config\nto_esperanto_config]
+    CHECK2 -->|No| ENV[key_provider:\nDB Creds → Env Vars]
+    CRED --> CTX{Context >\n105K tokens?}
+    ENV --> CTX
+    FALLBACK1 --> CTX
+    CTX -->|Yes| LARGE[Use large_context_model]
+    CTX -->|No| NORMAL[Use specified / default model]
+    LARGE --> PROV[provision_langchain_model\nEsperanto Factory]
+    NORMAL --> PROV
+    PROV --> LLM[LangChain LLM Instance]

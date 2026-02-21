@@ -1,0 +1,57 @@
+graph TB
+    subgraph USER["User / Browser"]
+        B[Browser]
+    end
+
+    subgraph FRONTEND["Frontend — Next.js 16 @ :3000"]
+        NX[App Router]
+        ZS[Zustand Store]
+        TQ[TanStack Query]
+        AX[Axios Client]
+    end
+
+    subgraph API["API — FastAPI @ :5055"]
+        MW[Auth Middleware]
+        RT[21 Routers]
+        SV[16 Services]
+        LG[LangGraph Workflows]
+        CQ[Command Queue]
+    end
+
+    subgraph DB["Database — SurrealDB @ :8000"]
+        TB[Core Tables]
+        VE[Vector Embeddings]
+        MG[13 Migrations]
+    end
+
+    subgraph AI["AI Providers — Esperanto"]
+        OA[OpenAI]
+        AN[Anthropic]
+        GO[Google]
+        GQ[Groq]
+        OL[Ollama]
+        MS[Mistral]
+        DS[DeepSeek]
+        XA[xAI]
+    end
+
+    subgraph STORAGE["Local Storage"]
+        SQ[SQLite — LangGraph Checkpoints]
+        FS[File System — Uploads]
+    end
+
+    B --> NX
+    NX --> ZS
+    NX --> TQ
+    TQ --> AX
+    AX -->|HTTP REST| MW
+    MW --> RT
+    RT --> SV
+    SV --> LG
+    SV --> CQ
+    SV --> DB
+    LG --> AI
+    LG --> SQ
+    CQ --> DB
+    CQ --> AI
+    DB --> VE

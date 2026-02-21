@@ -34,6 +34,7 @@ export interface SpeakerProfile {
   description: string
   tts_provider: string
   tts_model: string
+  tts_config?: Record<string, unknown> | null
   speakers: SpeakerVoiceConfig[]
 }
 

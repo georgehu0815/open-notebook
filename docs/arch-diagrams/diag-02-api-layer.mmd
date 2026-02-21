@@ -1,0 +1,57 @@
+graph LR
+    subgraph Routers["API Routers (/api/...)"]
+        R1[notebooks]
+        R2[sources]
+        R3[notes]
+        R4[chat]
+        R5[source_chat]
+        R6[search]
+        R7[podcasts]
+        R8[models]
+        R9[credentials]
+        R10[transformations]
+        R11[insights]
+        R12[commands]
+        R13[embedding]
+        R14[episode_profiles]
+        R15[speaker_profiles]
+        R16[settings]
+        R17[auth]
+        R18[config]
+        R19[context]
+    end
+
+    subgraph Services["Service Layer"]
+        S1[notebook_service]
+        S2[sources_service]
+        S3[notes_service]
+        S4[chat_service]
+        S5[search_service]
+        S6[podcast_service]
+        S7[models_service]
+        S8[credentials_service]
+        S9[transformations_service]
+        S10[insights_service]
+        S11[command_service]
+        S12[embedding_service]
+        S13[settings_service]
+        S14[context_service]
+    end
+
+    R1 --> S1
+    R2 --> S2
+    R3 --> S3
+    R4 --> S4
+    R5 --> S4
+    R6 --> S5
+    R7 --> S6
+    R8 --> S7
+    R9 --> S8
+    R10 --> S9
+    R11 --> S10
+    R12 --> S11
+    R13 --> S12
+    R14 --> S6
+    R15 --> S6
+    R16 --> S13
+    R19 --> S14

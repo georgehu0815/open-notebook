@@ -1,0 +1,48 @@
+graph TD
+    subgraph INGESTION["Source Ingestion — source.py"]
+        I1([Start]) --> I2[Extract Content\ncontent-core]
+        I2 --> I3[Save to SurrealDB]
+        I3 --> I4[Chunk + Embed\nbatch embedding]
+        I4 --> I5[Run Transformations]
+        I5 --> I6([End])
+    end
+
+    subgraph CHAT["Notebook Chat — chat.py"]
+        C1([Start]) --> C2[Load Message History\nSqliteSaver]
+        C2 --> C3[Build System Prompt\nJinja2]
+        C3 --> C4[LLM Invocation\nprovision_langchain_model]
+        C4 --> C5[Persist Messages]
+        C5 --> C6([End])
+    end
+
+    subgraph SRCCHAT["Source Chat — source_chat.py"]
+        SC1([Start]) --> SC2[Fetch Source Context\ncontext_builder]
+        SC2 --> SC3[Build Prompt with Context]
+        SC3 --> SC4[LLM Invocation]
+        SC4 --> SC5([End])
+    end
+
+    subgraph ASK["Search & Synthesis — ask.py"]
+        A1([Start]) --> A2[Entry — Parse Query]
+        A2 --> A3[Query × N\nParallel Searches]
+        A3 --> A4[Retrieve Embeddings\nVector Search]
+        A4 --> A5[Final Answer\nSynthesize Results]
+        A5 --> A6([End])
+    end
+
+    subgraph TRANSFORM["Transformation — transformation.py"]
+        T1([Start]) --> T2[Load Transformation Template]
+        T2 --> T3[Render Jinja2 Template]
+        T3 --> T4[LLM Invocation]
+        T4 --> T5[Save Output as Note/Insight]
+        T5 --> T6([End])
+    end
+
+    subgraph PODCAST["Podcast — via podcast-creator"]
+        P1([Start]) --> P2[Load Episode Profile\n+ Speaker Profiles]
+        P2 --> P3[Generate Outline\nLLM]
+        P3 --> P4[Generate Transcript\nLLM]
+        P4 --> P5[TTS Synthesis\nElevenLabs / other]
+        P5 --> P6[Merge Audio]
+        P6 --> P7([End])
+    end

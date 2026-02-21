@@ -7,7 +7,9 @@ import os
 from typing import Any, Dict, List, Optional
 
 import httpx
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from loguru import logger
+from openai import AsyncAzureOpenAI
 
 
 class ChatService:
@@ -20,6 +22,34 @@ class ChatService:
         password = os.getenv("OPEN_NOTEBOOK_PASSWORD")
         if password:
             self.headers["Authorization"] = f"Bearer {password}"
+
+        # Azure OpenAI client using managed identity (no API key required).
+        # Follows the same pattern as azure_provider.py.
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        self.azure_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5.2-chat")
+        self.azure_api_version = os.getenv(
+            "AZURE_OPENAI_API_VERSION", "2025-01-01-preview"
+        )
+
+        if azure_endpoint:
+            token_provider = get_bearer_token_provider(
+                DefaultAzureCredential(),
+                "https://cognitiveservices.azure.com/.default",
+            )
+            self._azure_client = AsyncAzureOpenAI(
+                api_version=self.azure_api_version,
+                azure_endpoint=azure_endpoint,
+                azure_ad_token_provider=token_provider,
+            )
+            logger.info(
+                f"Azure OpenAI default LLM initialized: endpoint={azure_endpoint} "
+                f"deployment={self.azure_deployment}"
+            )
+        else:
+            self._azure_client = None
+            logger.warning(
+                "AZURE_OPENAI_ENDPOINT not set — Azure OpenAI default LLM disabled"
+            )
 
     async def get_sessions(self, notebook_id: str) -> List[Dict[str, Any]]:
         """Get all chat sessions for a notebook"""

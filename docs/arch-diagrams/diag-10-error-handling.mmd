@@ -1,0 +1,13 @@
+graph TD
+    RAW[Raw Exception\nfrom LLM / DB / Network] --> CLS[classify_error\nerror_classifier.py]
+    CLS --> MAP{Keyword\nMatching}
+    MAP -->|rate limit| RL[RateLimitError → 429]
+    MAP -->|auth / key| AE[AuthenticationError → 401]
+    MAP -->|not found| NF[NotFoundError → 404]
+    MAP -->|invalid input| II[InvalidInputError → 400]
+    MAP -->|network| NE[NetworkError → 502]
+    MAP -->|other| GE[OpenNotebookError → 500]
+    RL & AE & NF & II & NE & GE --> FH[FastAPI Global\nException Handler]
+    FH --> JSON["JSON { detail: message }\nHTTP Response"]
+    JSON --> FE[Frontend\ngetApiErrorMessage]
+    FE --> TOAST[User-visible\nToast / Alert]

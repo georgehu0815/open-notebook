@@ -1,0 +1,8 @@
+#V2
+USE NS open_notebook DB open_notebook; DEFINE FIELD test_field ON TABLE test_table TYPE option<object>;
+USE NS open_notebook DB open_notebook;
+SELECT id, title, updated FROM (select value in from reference where out=notebook:qzhr0w3sy235on28b5rj) LIMIT 5;
+USE NS open_notebook DB open_notebook;
+SELECT * FROM reference WHERE out=notebook:qzhr0w3sy235on28b5rj LIMIT 3;
+USE NS open_notebook DB open_notebook;
+SELECT id, title, search::score(1) as score FROM source WHERE title @1@ 'test' LIMIT 3;

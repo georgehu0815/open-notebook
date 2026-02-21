@@ -96,6 +96,56 @@ Learn more about our project at [https://www.open-notebook.ai](https://www.open-
 
 ## 🚀 Quick Start (2 Minutes)
 
+Install SurrealDB via Homebrew
+
+Start SurrealDB natively
+
+Start FastAPI backend with Azure OpenAI env
+
+Start Next.js frontend
+=====
+
+Go to https://surrealist.app (or click the redirect from http://localhost:8000)
+Click "New connection" and fill in:
+Field	Value
+Protocol	WebSocket (ws://)
+Host	localhost:8000
+Namespace	open_notebook
+Database	open_notebook
+Username	root
+Password	root
+
+
+Everything works. Here's a quick reference:
+
+scripts/services.sh
+All services (db → api → frontend → worker):
+
+
+./scripts/services.sh start          # start all (in dependency order)
+./scripts/services.sh stop           # stop all (reverse order)
+./scripts/services.sh restart        # stop + start all
+./scripts/services.sh status         # show PID + port for each service
+Individual service (db | api | frontend | worker):
+
+
+./scripts/services.sh restart db     # reboot SurrealDB only
+./scripts/services.sh restart api    # reboot API only
+./scripts/services.sh stop frontend  # stop frontend only
+./scripts/services.sh start worker   # start worker only
+Logs:
+
+
+./scripts/services.sh logs api       # tail /tmp/open-notebook/api.log
+./scripts/services.sh logs db        # tail /tmp/open-notebook/db.log
+Key design decisions:
+
+PID files at /tmp/open-notebook/*.pid — track what the script started
+Pattern-based kill as belt-and-suspenders — catches processes started outside the script
+Health checks before returning — SurrealDB waits for port 8000, API waits for /health, Frontend waits for port 3000
+No set -e — replaced with explicit error handling so boolean checks (lsof, pgrep, kill) don't abort the script
+
+
 ### Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed
 - That's it! (API keys configured later in the UI)

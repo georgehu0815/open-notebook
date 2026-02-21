@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant MW as Auth Middleware
+    participant API as FastAPI Router
+
+    U->>FE: Enter password
+    FE->>MW: POST /api/auth/password
+    MW->>MW: Validate OPEN_NOTEBOOK_PASSWORD
+    MW-->>FE: { token: "..." }
+    FE->>FE: Store token in localStorage
+
+    U->>FE: Navigate to page
+    FE->>MW: GET /api/notebooks\nAuthorization: Bearer {token}
+    MW->>MW: Validate token
+    MW->>API: Forward request
+    API-->>FE: Response data
+
+    Note over FE,API: 401 response clears auth → redirect to /login

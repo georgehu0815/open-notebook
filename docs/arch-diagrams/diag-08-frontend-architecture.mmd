@@ -1,0 +1,46 @@
+graph TD
+    subgraph APP["Next.js App Router (src/app/)"]
+        AUTH["(auth)/login"]
+        DASH["(dashboard)/"]
+        NB[notebooks/]
+        SRC[sources/]
+        CHT[chat/]
+        SRCH[search/]
+        POD[podcasts/]
+        MDL[models/]
+        SET[settings/]
+    end
+
+    subgraph COMPONENTS["Components (src/components/)"]
+        UI[ui/ — Radix + Shadcn]
+        LAY[layout/ — AppShell, Sidebar]
+        COM[common/ — CommandPalette, ModelSelector]
+        SRCCOMP[source/ — SourceCard, UploadForm]
+        PODCOMP[podcasts/ — EpisodePlayer]
+    end
+
+    subgraph STATE["State Management"]
+        TQ[TanStack Query\nServer State]
+        ZS[Zustand\nAuth + UI State]
+    end
+
+    subgraph APICLIENT["API Layer (src/lib/api/)"]
+        CL[client.ts — Axios + interceptors]
+        NBS[notebooks.ts]
+        SRCS[sources.ts]
+        CHS[chat.ts]
+        NTS[notes.ts]
+        MDS[models.ts]
+        CRS[credentials.ts]
+        SRS[search.ts]
+        PDS[podcasts.ts]
+    end
+
+    DASH --> NB & SRC & CHT & SRCH & POD & MDL & SET
+    AUTH --> ZS
+    NB --> COMPONENTS
+    SRC --> COMPONENTS
+    COMPONENTS --> STATE
+    STATE --> TQ & ZS
+    TQ --> APICLIENT
+    CL -->|"Bearer token\nFormData\ninterceptors"| API[(FastAPI :5055)]

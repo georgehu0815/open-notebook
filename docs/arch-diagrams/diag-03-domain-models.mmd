@@ -1,0 +1,165 @@
+erDiagram
+    NOTEBOOK {
+        string id PK
+        string name
+        string description
+        boolean archived
+        datetime created
+        datetime updated
+    }
+
+    SOURCE {
+        string id PK
+        string title
+        object asset
+        array topics
+        text full_text
+        string command FK
+        datetime created
+        datetime updated
+    }
+
+    NOTE {
+        string id PK
+        string title
+        string note_type
+        text content
+        vector embedding
+        datetime created
+        datetime updated
+    }
+
+    SOURCE_INSIGHT {
+        string id PK
+        string source FK
+        string insight_type
+        text content
+        vector embedding
+        datetime created
+    }
+
+    SOURCE_EMBEDDING {
+        string id PK
+        string source FK
+        int order
+        text content
+        vector embedding
+    }
+
+    CHAT_SESSION {
+        string id PK
+        string title
+        string model_override
+        datetime created
+        datetime updated
+    }
+
+    CREDENTIAL {
+        string id PK
+        string name
+        string provider
+        array modalities
+        string api_key
+        string base_url
+        string endpoint
+        string api_version
+        string endpoint_embedding
+        string endpoint_llm
+        string endpoint_tts
+        string project
+        string location
+        datetime created
+    }
+
+    MODEL {
+        string id PK
+        string name
+        string provider
+        string type
+        string credential FK
+        datetime created
+    }
+
+    DEFAULT_MODELS {
+        string id PK
+        string default_chat_model FK
+        string default_embedding_model FK
+        string default_transformation_model FK
+        string large_context_model FK
+        string default_text_to_speech_model FK
+        string default_speech_to_text_model FK
+        string default_tools_model FK
+    }
+
+    TRANSFORMATION {
+        string id PK
+        string name
+        string title
+        string description
+        text prompt
+        boolean apply_default
+        datetime created
+    }
+
+    SPEAKER_PROFILE {
+        string id PK
+        string name
+        string description
+        string tts_provider
+        string tts_model
+        array speakers
+        datetime created
+    }
+
+    EPISODE_PROFILE {
+        string id PK
+        string name
+        string description
+        string speaker_config
+        string outline_provider
+        string outline_model
+        string transcript_provider
+        string transcript_model
+        text default_briefing
+        int num_segments
+        datetime created
+    }
+
+    EPISODE {
+        string id PK
+        string name
+        object episode_profile
+        object speaker_profile
+        text briefing
+        text content
+        string audio_file
+        json transcript
+        json outline
+        string command FK
+        datetime created
+        datetime updated
+    }
+
+    COMMAND {
+        string id PK
+        string module
+        string command
+        json params
+        string status
+        json result
+        string error_message
+        datetime created
+        datetime updated
+    }
+
+    NOTEBOOK ||--o{ SOURCE : "reference (graph edge)"
+    NOTEBOOK ||--o{ NOTE : "artifact (graph edge)"
+    NOTEBOOK ||--o{ CHAT_SESSION : "refers_to (graph edge)"
+    SOURCE ||--o{ SOURCE_INSIGHT : "generates"
+    SOURCE ||--o{ SOURCE_EMBEDDING : "vectorized_as"
+    SOURCE }o--o| COMMAND : "processed_by"
+    EPISODE }o--o| COMMAND : "processed_by"
+    MODEL }o--|| CREDENTIAL : "uses"
+    DEFAULT_MODELS }o--o{ MODEL : "references"
+    EPISODE_PROFILE }o--|| SPEAKER_PROFILE : "uses"
+    EPISODE }o--|| EPISODE_PROFILE : "based_on"
